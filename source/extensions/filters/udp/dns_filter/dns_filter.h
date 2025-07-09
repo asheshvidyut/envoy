@@ -6,7 +6,7 @@
 #include "envoy/network/filter.h"
 
 #include "source/common/buffer/buffer_impl.h"
-#include "source/common/common/trie_lookup_table.h"
+#include "source/common/common/radix_tree.h"
 #include "source/common/config/config_provider_impl.h"
 #include "source/common/network/utility.h"
 #include "source/extensions/filters/udp/dns_filter/dns_filter_resolver.h"
@@ -97,7 +97,7 @@ public:
   }
   const Network::DnsResolverFactory& dnsResolverFactory() const { return *dns_resolver_factory_; }
   Api::Api& api() const { return api_; }
-  const TrieLookupTable<DnsVirtualDomainConfigSharedPtr>& getDnsTrie() const {
+  const RadixTree<DnsVirtualDomainConfigSharedPtr>& getDnsTrie() const {
     return dns_lookup_trie_;
   }
 
@@ -123,7 +123,7 @@ private:
 
   mutable DnsFilterStats stats_;
 
-  TrieLookupTable<DnsVirtualDomainConfigSharedPtr> dns_lookup_trie_;
+  RadixTree<DnsVirtualDomainConfigSharedPtr> dns_lookup_trie_;
   absl::flat_hash_map<std::string, std::chrono::seconds> domain_ttl_;
   bool forward_queries_;
   uint64_t retry_count_;

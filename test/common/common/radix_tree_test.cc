@@ -141,4 +141,216 @@ TEST(RadixTree, EmptyAndSingleNode) {
   EXPECT_THAT(radixtree.findMatchingPrefixes("b"), ElementsAre());
 }
 
+TEST(RadixTree, InsertAndFindEdgeCases) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+  const char* cstr_c = "c";
+  const char* cstr_d = "d";
+
+  // Test empty string
+  EXPECT_TRUE(radixtree.add("", cstr_a));
+  EXPECT_EQ(cstr_a, radixtree.find(""));
+  EXPECT_EQ(cstr_a, radixtree.findLongestPrefix(""));
+  EXPECT_THAT(radixtree.findMatchingPrefixes(""), ElementsAre(cstr_a));
+
+  // Test single character
+  EXPECT_TRUE(radixtree.add("x", cstr_b));
+  EXPECT_EQ(cstr_b, radixtree.find("x"));
+  EXPECT_EQ(cstr_b, radixtree.findLongestPrefix("x"));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("x"), ElementsAre(cstr_b));
+
+  // Test very long string
+  std::string long_key(1000, 'a');
+  EXPECT_TRUE(radixtree.add(long_key, cstr_c));
+  EXPECT_EQ(cstr_c, radixtree.find(long_key));
+  EXPECT_EQ(cstr_c, radixtree.findLongestPrefix(long_key));
+  EXPECT_THAT(radixtree.findMatchingPrefixes(long_key), ElementsAre(cstr_c));
+
+  // Test special characters
+  EXPECT_TRUE(radixtree.add("test/key", cstr_d));
+  EXPECT_EQ(cstr_d, radixtree.find("test/key"));
+  EXPECT_EQ(cstr_d, radixtree.findLongestPrefix("test/key"));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("test/key"), ElementsAre(cstr_d));
+
+  // Test non-existent keys
+  EXPECT_EQ(nullptr, radixtree.find("nonexistent"));
+  EXPECT_EQ(nullptr, radixtree.findLongestPrefix("nonexistent"));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("nonexistent"), ElementsAre());
+}
+
+TEST(RadixTree, InsertAndFindComplexScenarios) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+  const char* cstr_c = "c";
+  const char* cstr_d = "d";
+  const char* cstr_e = "e";
+  const char* cstr_f = "f";
+
+  // Test overlapping prefixes
+  EXPECT_TRUE(radixtree.add("test", cstr_a));
+  EXPECT_TRUE(radixtree.add("testing", cstr_b));
+  EXPECT_TRUE(radixtree.add("tester", cstr_c));
+  EXPECT_TRUE(radixtree.add("tested", cstr_d));
+
+  // Verify all can be found
+  EXPECT_EQ(cstr_a, radixtree.find("test"));
+  EXPECT_EQ(cstr_b, radixtree.find("testing"));
+  EXPECT_EQ(cstr_c, radixtree.find("tester"));
+  EXPECT_EQ(cstr_d, radixtree.find("tested"));
+
+  // Test prefix matching
+  EXPECT_THAT(radixtree.findMatchingPrefixes("test"), ElementsAre(cstr_a));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("testing"), ElementsAre(cstr_a, cstr_b));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("tester"), ElementsAre(cstr_a, cstr_c));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("tested"), ElementsAre(cstr_a, cstr_d));
+
+  // Test longest prefix
+  EXPECT_EQ(cstr_a, radixtree.findLongestPrefix("test"));
+  EXPECT_EQ(cstr_b, radixtree.findLongestPrefix("testing"));
+  EXPECT_EQ(cstr_c, radixtree.findLongestPrefix("tester"));
+  EXPECT_EQ(cstr_d, radixtree.findLongestPrefix("tested"));
+  EXPECT_EQ(cstr_a, radixtree.findLongestPrefix("testx"));
+  EXPECT_EQ(nullptr, radixtree.findLongestPrefix("tex"));
+
+  // Test branching scenarios
+  EXPECT_TRUE(radixtree.add("hello", cstr_e));
+  EXPECT_TRUE(radixtree.add("world", cstr_f));
+
+  EXPECT_EQ(cstr_e, radixtree.find("hello"));
+  EXPECT_EQ(cstr_f, radixtree.find("world"));
+  EXPECT_EQ(cstr_e, radixtree.findLongestPrefix("hello"));
+  EXPECT_EQ(cstr_f, radixtree.findLongestPrefix("world"));
+}
+
+TEST(RadixTree, InsertAndFindOverwriteBehavior) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+  const char* cstr_c = "c";
+
+  // Test overwrite_existing = true (default)
+  EXPECT_TRUE(radixtree.add("key", cstr_a));
+  EXPECT_EQ(cstr_a, radixtree.find("key"));
+  
+  EXPECT_TRUE(radixtree.add("key", cstr_b));
+  EXPECT_EQ(cstr_b, radixtree.find("key"));
+
+  // Test overwrite_existing = false
+  EXPECT_FALSE(radixtree.add("key", cstr_c, false));
+  EXPECT_EQ(cstr_b, radixtree.find("key")); // Should still be cstr_b
+
+  // Test overwrite_existing = true explicitly
+  EXPECT_TRUE(radixtree.add("key", cstr_c, true));
+  EXPECT_EQ(cstr_c, radixtree.find("key"));
+}
+
+TEST(RadixTree, InsertAndFindDeepNesting) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+  const char* cstr_c = "c";
+
+  // Test deep nesting
+  EXPECT_TRUE(radixtree.add("a/b/c/d/e/f", cstr_a));
+  EXPECT_TRUE(radixtree.add("a/b/c/d/e/g", cstr_b));
+  EXPECT_TRUE(radixtree.add("a/b/c/d/e/h", cstr_c));
+
+  EXPECT_EQ(cstr_a, radixtree.find("a/b/c/d/e/f"));
+  EXPECT_EQ(cstr_b, radixtree.find("a/b/c/d/e/g"));
+  EXPECT_EQ(cstr_c, radixtree.find("a/b/c/d/e/h"));
+
+  // Test prefix matching on deep paths
+  EXPECT_THAT(radixtree.findMatchingPrefixes("a/b/c/d/e/f"), ElementsAre(cstr_a));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("a/b/c/d/e/g"), ElementsAre(cstr_b));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("a/b/c/d/e/h"), ElementsAre(cstr_c));
+
+  // Test longest prefix on deep paths
+  EXPECT_EQ(cstr_a, radixtree.findLongestPrefix("a/b/c/d/e/f"));
+  EXPECT_EQ(cstr_b, radixtree.findLongestPrefix("a/b/c/d/e/g"));
+  EXPECT_EQ(cstr_c, radixtree.findLongestPrefix("a/b/c/d/e/h"));
+}
+
+TEST(RadixTree, InsertAndFindMixedLengths) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+  const char* cstr_c = "c";
+  const char* cstr_d = "d";
+
+  // Test mixed length keys
+  EXPECT_TRUE(radixtree.add("a", cstr_a));
+  EXPECT_TRUE(radixtree.add("aa", cstr_b));
+  EXPECT_TRUE(radixtree.add("aaa", cstr_c));
+  EXPECT_TRUE(radixtree.add("aaaa", cstr_d));
+
+  EXPECT_EQ(cstr_a, radixtree.find("a"));
+  EXPECT_EQ(cstr_b, radixtree.find("aa"));
+  EXPECT_EQ(cstr_c, radixtree.find("aaa"));
+  EXPECT_EQ(cstr_d, radixtree.find("aaaa"));
+
+  // Test prefix matching
+  EXPECT_THAT(radixtree.findMatchingPrefixes("a"), ElementsAre(cstr_a));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("aa"), ElementsAre(cstr_a, cstr_b));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("aaa"), ElementsAre(cstr_a, cstr_b, cstr_c));
+  EXPECT_THAT(radixtree.findMatchingPrefixes("aaaa"), ElementsAre(cstr_a, cstr_b, cstr_c, cstr_d));
+
+  // Test longest prefix
+  EXPECT_EQ(cstr_a, radixtree.findLongestPrefix("a"));
+  EXPECT_EQ(cstr_b, radixtree.findLongestPrefix("aa"));
+  EXPECT_EQ(cstr_c, radixtree.findLongestPrefix("aaa"));
+  EXPECT_EQ(cstr_d, radixtree.findLongestPrefix("aaaa"));
+  EXPECT_EQ(cstr_d, radixtree.findLongestPrefix("aaaaa"));
+  EXPECT_EQ(nullptr, radixtree.findLongestPrefix("b"));
+}
+
+TEST(RadixTree, InsertAndFindSpecialCharacters) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+  const char* cstr_c = "c";
+
+  // Test special characters
+  EXPECT_TRUE(radixtree.add("test-key", cstr_a));
+  EXPECT_TRUE(radixtree.add("test_key", cstr_b));
+  EXPECT_TRUE(radixtree.add("test.key", cstr_c));
+
+  EXPECT_EQ(cstr_a, radixtree.find("test-key"));
+  EXPECT_EQ(cstr_b, radixtree.find("test_key"));
+  EXPECT_EQ(cstr_c, radixtree.find("test.key"));
+
+  // Test with spaces
+  EXPECT_TRUE(radixtree.add("test key", cstr_a));
+  EXPECT_EQ(cstr_a, radixtree.find("test key"));
+
+  // Test with numbers
+  EXPECT_TRUE(radixtree.add("test123", cstr_b));
+  EXPECT_EQ(cstr_b, radixtree.find("test123"));
+}
+
+TEST(RadixTree, InsertAndFindBooleanInterface) {
+  RadixTree<const char*> radixtree;
+  const char* cstr_a = "a";
+  const char* cstr_b = "b";
+
+  // Test boolean find interface
+  const char* result;
+  
+  EXPECT_FALSE(radixtree.find("nonexistent", result));
+  
+  EXPECT_TRUE(radixtree.add("key", cstr_a));
+  EXPECT_TRUE(radixtree.find("key", result));
+  EXPECT_EQ(cstr_a, result);
+
+  EXPECT_TRUE(radixtree.add("key", cstr_b));
+  EXPECT_TRUE(radixtree.find("key", result));
+  EXPECT_EQ(cstr_b, result);
+
+  // Test with empty string
+  EXPECT_TRUE(radixtree.add("", cstr_a));
+  EXPECT_TRUE(radixtree.find("", result));
+  EXPECT_EQ(cstr_a, result);
+}
+
 } // namespace Envoy 
