@@ -202,6 +202,14 @@ public:
     const RadixTreeNode* node = &root_;
     bool consumed_prefix = false;
 
+    // Special case: if searching for empty string, check root node
+    if (search.empty()) {
+      if (hasValue(*node)) {
+        result.push_back(node->value_);
+      }
+      return result;
+    }
+
     while (true) {
       // Check if current node has a value (is a leaf) and we've consumed some prefix
       if (hasValue(*node) && consumed_prefix) {
@@ -249,6 +257,14 @@ public:
     const RadixTreeNode* node = &root_;
     const RadixTreeNode* last_node_with_value = nullptr;
     bool consumed_prefix = false;
+
+    // Special case: if searching for empty string, check root node
+    if (search.empty()) {
+      if (hasValue(*node)) {
+        return node->value_;
+      }
+      return Value{};
+    }
 
     while (true) {
       // Check if current node has a value (is a leaf) and we've consumed some prefix
