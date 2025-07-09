@@ -158,17 +158,11 @@ public:
     Value existing = find(key);
     
     // If a value exists and we shouldn't overwrite, return false
-    if constexpr (std::is_pointer_v<Value>) {
-      if (existing != nullptr && !overwrite_existing) {
-        return false;
-      }
-    } else {
-      if (static_cast<bool>(existing) && !overwrite_existing) {
-        return false;
-      }
+    if (static_cast<bool>(existing) && !overwrite_existing) {
+      return false;
     }
     
-    auto [newNode, oldVal, didUpdate] = insert(&root_, key, key, std::move(value));
+    insert(&root_, key, key, std::move(value));
     return true;
   }
 
