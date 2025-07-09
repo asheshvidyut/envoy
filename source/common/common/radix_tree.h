@@ -32,14 +32,6 @@ namespace Envoy {
     return nullptr;
   }
 
-  RadixTreeNode* getChild(RadixTreeNode& node, uint8_t char_key) {
-    auto it = node.children_.find(char_key);
-    if (it != node.children_.end()) {
-      return &it->second;
-    }
-    return nullptr;
-  }
-
   /**
    * Check if a node has a value (is a leaf node)
    */
