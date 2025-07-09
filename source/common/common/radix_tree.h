@@ -44,7 +44,12 @@ namespace Envoy {
    * Check if a node has a value (is a leaf node)
    */
   bool hasValue(const RadixTreeNode& node) const {
-    return static_cast<bool>(node.value_);
+    // For pointer types, check if the pointer is not null
+    if constexpr (std::is_pointer_v<Value>) {
+      return node.value_ != nullptr;
+    } else {
+      return static_cast<bool>(node.value_);
+    }
   }
 
   /**
