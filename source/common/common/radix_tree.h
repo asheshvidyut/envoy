@@ -250,8 +250,45 @@ public:
    *         no keys that are a prefix of the input key, an empty-initialized Value.
    */
   Value findLongestPrefix(absl::string_view key) const {
-    // TODO: Implement traversal logic for single root node structure
-    return {};
+    absl::string_view search = key;
+    const RadixTreeNode* node = &root_;
+    const RadixTreeNode* last_node_with_value = nullptr;
+
+    while (true) {
+      // Check if current node has a value (is a leaf)
+      if (hasValue(*node)) {
+        last_node_with_value = node;
+      }
+
+      // Check for key exhaustion
+      if (search.empty()) {
+        break;
+      }
+
+      // Look for an edge
+      uint8_t firstChar = static_cast<uint8_t>(search[0]);
+      auto childIt = node->children_.find(firstChar);
+      if (childIt == node->children_.end()) {
+        break;
+      }
+
+      const RadixTreeNode& child = childIt->second;
+      node = &child;
+
+      // Consume the search prefix
+      if (search.size() >= child.prefix.size() && 
+          search.substr(0, child.prefix.size()) == child.prefix) {
+        search = search.substr(child.prefix.size());
+      } else {
+        break;
+      }
+    }
+
+    // Return the value from the last node that had a value, or empty value if none found
+    if (last_node_with_value != nullptr) {
+      return last_node_with_value->value_;
+    }
+    return Value{};
   }
 
 private:
