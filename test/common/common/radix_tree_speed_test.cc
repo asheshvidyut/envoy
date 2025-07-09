@@ -18,9 +18,9 @@ template <class TableType>
 static void typedBmRadixTreeLookups(benchmark::State& state, std::vector<std::string>& keys) {
   std::mt19937 prng(1); // PRNG with a fixed seed, for repeatability
   std::uniform_int_distribution<size_t> keyindex_distribution(0, keys.size() - 1);
-  TableType trie;
+  TableType radixtree;
   for (const std::string& key : keys) {
-    trie.add(key, nullptr);
+    radixtree.add(key, nullptr);
   }
   std::vector<size_t> key_selections;
   for (size_t i = 0; i < 1024; i++) {
@@ -29,12 +29,12 @@ static void typedBmRadixTreeLookups(benchmark::State& state, std::vector<std::st
 
   // key_index indexes into key_selections which is a pre-selected
   // random ordering of 1024 indexes into the existing keys. This
-  // way we read from all over the trie, without spending time during
+  // way we read from all over the radixtree, without spending time during
   // the performance test generating these random choices.
   size_t key_index = 0;
   for (auto _ : state) {
     UNREFERENCED_PARAMETER(_);
-    auto v = trie.find(keys[key_selections[key_index++]]);
+    auto v = radixtree.find(keys[key_selections[key_index++]]);
     // Reset key_index to 0 whenever it reaches 1024.
     key_index &= 1023;
     benchmark::DoNotOptimize(v);
@@ -85,52 +85,5 @@ static void bmRadixTreeLookupsResponseHeaders(benchmark::State& s) {
 BENCHMARK(bmRadixTreeLookupsRequestHeaders);
 BENCHMARK(bmRadixTreeLookupsResponseHeaders);
 BENCHMARK(bmRadixTreeLookups)->ArgsProduct({{10, 100, 1000, 10000}, {0, 8, 128}});
-
-// Additional benchmarks for radix tree specific operations
-template <class TableType>
-static void typedBmRadixTreeLongestPrefix(benchmark::State& state, std::vector<std::string>& keys) {
-  std::mt19937 prng(1);
-  std::uniform_int_distribution<size_t> keyindex_distribution(0, keys.size() - 1);
-  TableType trie;
-  for (const std::string& key : keys) {
-    trie.add(key, nullptr);
-  }
-  std::vector<size_t> key_selections;
-  for (size_t i = 0; i < 1024; i++) {
-    key_selections.push_back(keyindex_distribution(prng));
-  }
-
-  size_t key_index = 0;
-  for (auto _ : state) {
-    UNREFERENCED_PARAMETER(_);
-    auto v = trie.findLongestPrefix(keys[key_selections[key_index++]]);
-    key_index &= 1023;
-    benchmark::DoNotOptimize(v);
-  }
-}
-
-static void bmRadixTreeLongestPrefix(benchmark::State& s) {
-  std::mt19937 prng(1);
-  int num_keys = s.range(0);
-  int key_length = s.range(1);
-  std::uniform_int_distribution<short> char_distribution('a', 'z');
-  std::uniform_int_distribution<size_t> key_length_distribution(key_length == 0 ? 8 : key_length,
-                                                                key_length == 0 ? 128 : key_length);
-  auto make_key = [&](size_t len) {
-    std::string ret;
-    for (size_t i = 0; i < len; i++) {
-      ret.push_back(static_cast<char>(char_distribution(prng)));
-    }
-    return ret;
-  };
-  std::vector<std::string> keys;
-  for (int i = 0; i < num_keys; i++) {
-    std::string key = make_key(key_length_distribution(prng));
-    keys.push_back(std::move(key));
-  }
-  typedBmRadixTreeLongestPrefix<RadixTree<const void*>>(s, keys);
-}
-
-BENCHMARK(bmRadixTreeLongestPrefix)->ArgsProduct({{10, 100, 1000, 10000}, {0, 8, 128}});
 
 } // namespace Envoy 
