@@ -150,9 +150,7 @@ public:
    */
   bool add(absl::string_view key, Value value, bool overwrite_existing = true) {
     auto [newNode, oldVal, didUpdate] = insert(&root_, key, key, std::move(value));
-    if (newNode != nullptr) {
-      root_ = *newNode;
-    }
+    // Don't copy the root node - the insert function already modified it in place
     return !didUpdate || overwrite_existing;
   }
 
