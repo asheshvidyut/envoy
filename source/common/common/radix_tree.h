@@ -200,10 +200,11 @@ public:
     absl::InlinedVector<Value, 4> result;
     absl::string_view search = key;
     const RadixTreeNode* node = &root_;
+    bool consumed_prefix = false;
 
     while (true) {
-      // Check if current node has a value (is a leaf)
-      if (hasValue(*node)) {
+      // Check if current node has a value (is a leaf) and we've consumed some prefix
+      if (hasValue(*node) && consumed_prefix) {
         result.push_back(node->value_);
       }
 
@@ -226,6 +227,7 @@ public:
       if (search.size() >= child.prefix.size() && 
           search.substr(0, child.prefix.size()) == child.prefix) {
         search = search.substr(child.prefix.size());
+        consumed_prefix = true;
       } else {
         break;
       }
@@ -246,10 +248,11 @@ public:
     absl::string_view search = key;
     const RadixTreeNode* node = &root_;
     const RadixTreeNode* last_node_with_value = nullptr;
+    bool consumed_prefix = false;
 
     while (true) {
-      // Check if current node has a value (is a leaf)
-      if (hasValue(*node)) {
+      // Check if current node has a value (is a leaf) and we've consumed some prefix
+      if (hasValue(*node) && consumed_prefix) {
         last_node_with_value = node;
       }
 
@@ -272,6 +275,7 @@ public:
       if (search.size() >= child.prefix.size() && 
           search.substr(0, child.prefix.size()) == child.prefix) {
         search = search.substr(child.prefix.size());
+        consumed_prefix = true;
       } else {
         break;
       }
