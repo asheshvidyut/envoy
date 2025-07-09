@@ -169,41 +169,24 @@ public:
   /**
    * Finds the entry associated with the key.
    * @param key the key used to find.
+   * @param result the value associated with the key (only set if found).
+   * @return true if the key was found, false otherwise.
+   */
+  bool find(absl::string_view key, Value& result) const {
+    return findRecursive(&root_, key, result);
+  }
+
+  /**
+   * Finds the entry associated with the key.
+   * @param key the key used to find.
    * @return the Value associated with the key, or an empty-initialized Value
    *         if there is no matching key.
    */
   Value find(absl::string_view key) const {
-    absl::string_view search = key;
-    const RadixTreeNode* node = &root_;
-    
-    while (true) {
-      // Check for key exhaustion
-      if (search.empty()) {
-        if (hasValue(*node)) {
-          return node->value_;
-        }
-        break;
-      }
-
-      // Look for an edge
-      uint8_t firstChar = static_cast<uint8_t>(search[0]);
-      auto childIt = node->children_.find(firstChar);
-      if (childIt == node->children_.end()) {
-        break;
-      }
-      
-      const RadixTreeNode& child = childIt->second;
-      
-      // Consume the search prefix
-      if (search.size() >= child.prefix.size() && 
-          search.substr(0, child.prefix.size()) == child.prefix) {
-        search = search.substr(child.prefix.size());
-        node = &child;
-      } else {
-        break;
-      }
+    Value result;
+    if (find(key, result)) {
+      return result;
     }
-    
     return Value{};
   }
 
@@ -304,5 +287,39 @@ public:
 private:
   // Initialized with a single empty node as the root node.
   RadixTreeNode root_ = RadixTreeNode();
+
+  /**
+   * Recursive helper for find operation.
+   * @param node the current node to search from.
+   * @param search the remaining search key.
+   * @param result the value to return if found.
+   * @return true if the key was found, false otherwise.
+   */
+  bool findRecursive(const RadixTreeNode* node, absl::string_view search, Value& result) const {
+    if (search.empty()) {
+      if (hasValue(*node)) {
+        result = node->value_;
+        return true;
+      }
+      return false;
+    }
+
+    uint8_t firstChar = static_cast<uint8_t>(search[0]);
+    auto childIt = node->children_.find(firstChar);
+    if (childIt == node->children_.end()) {
+      return false;
+    }
+
+    const RadixTreeNode& child = childIt->second;
+    
+    // Check if the child's prefix matches the search
+    if (search.size() >= child.prefix.size() && 
+        search.substr(0, child.prefix.size()) == child.prefix) {
+      absl::string_view newSearch(search.begin() + child.prefix.size(), search.end());
+      return findRecursive(&child, newSearch, result);
+    }
+
+    return false;
+  }
 };
 }
