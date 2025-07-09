@@ -154,9 +154,22 @@ public:
    * @return false when a value already exists for the given key.
    */
   bool add(absl::string_view key, Value value, bool overwrite_existing = true) {
+    // Check if the key already exists
+    Value existing = find(key);
+    
+    // If a value exists and we shouldn't overwrite, return false
+    if constexpr (std::is_pointer_v<Value>) {
+      if (existing != nullptr && !overwrite_existing) {
+        return false;
+      }
+    } else {
+      if (static_cast<bool>(existing) && !overwrite_existing) {
+        return false;
+      }
+    }
+    
     auto [newNode, oldVal, didUpdate] = insert(&root_, key, key, std::move(value));
-    // Don't copy the root node - the insert function already modified it in place
-    return !didUpdate || overwrite_existing;
+    return true;
   }
 
   /**
