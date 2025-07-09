@@ -183,15 +183,29 @@ public:
       }
       
       const RadixTreeNode& child = childIt->second;
-      node = &child;
-
-      // Consume the search prefix
-      if (search.size() >= child.prefix.size() && 
-          search.substr(0, child.prefix.size()) == child.prefix) {
-        search = search.substr(child.prefix.size());
-      } else {
+      
+      // Optimized prefix check - avoid creating temporary string_view
+      const absl::string_view& prefix = child.prefix;
+      if (search.size() < prefix.size()) {
         break;
       }
+      
+      // Direct character-by-character comparison
+      bool prefix_matches = true;
+      for (size_t i = 0; i < prefix.size(); ++i) {
+        if (search[i] != prefix[i]) {
+          prefix_matches = false;
+          break;
+        }
+      }
+      
+      if (!prefix_matches) {
+        break;
+      }
+      
+      // Advance search pointer instead of creating new string_view
+      search = search.substr(prefix.size());
+      node = &child;
     }
     
     return Value{};
